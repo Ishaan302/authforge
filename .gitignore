@@ -3,5 +3,8 @@ __pycache__/
 *.py[cod]
 .env
 .pytest_cache/
+.vscode/
 
 AuthForge_Private_Project_Blueprint.md
+AuthForge_Private_Project_Guide.md
+README.md
