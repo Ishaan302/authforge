@@ -4,10 +4,15 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models import User
-from app.schemas import UserRegistered
-from app.core.security import hash_password
+from app.schemas import UserRegistered, UserLogin
+from app.core.security import hash_password, verify_password, create_access_token, verify_access_token
+
+from app.core.dependencies import get_current_user
+
 
 app = FastAPI(title="AuthForge API")
+
+
 
 @app.get("/health")
 def health_check():
@@ -20,6 +25,7 @@ def databse_check(db: Session = Depends(get_db)):
 
     return {"databse":result.scalar()}
 
+######## user registeration 
 
 @app.post("/auth/register")
 def register(user_data: UserRegistered, db: Session = Depends(get_db)):
@@ -46,3 +52,41 @@ def register(user_data: UserRegistered, db: Session = Depends(get_db)):
         "email": new_user.email
     }
 
+
+######### user login
+
+@app.post("/auth/login")
+def login(user_data: UserLogin, db: Session = Depends(get_db)):
+    
+    user = db.query(User).filter(User.email == user_data.email).first()
+
+    if user is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+    
+    if not verify_password(user_data.password, user.password_hash):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+    
+    access_token = create_access_token(user.id)
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+
+###### oauth
+
+@app.get("/users/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    return{
+        "id": current_user.id,
+        "email": current_user.email,
+        "is_email_verified": current_user.is_email_verified
+    }
